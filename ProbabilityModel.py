@@ -12,10 +12,9 @@ class ProbabilityModel(object):
     def sample(self):
         return random.uniform()
 
-
 # The sample space of this probability model is the set of real numbers, and
-# the probability measure is defined by the density function 
-# p(x) = 1/(sigma * (2*pi)^(1/2)) * exp(-(x-mu)^2/2*sigma^2)
+# the probability measure is defined by the density function
+# p(x) = 1/(sigma * (2*pi)^(1/2)) * exp(-(x-mu)^2/2*sigma^2).
 class UnivariateNormal(ProbabilityModel):
 
     # Initializes a univariate normal probability model object
@@ -25,73 +24,84 @@ class UnivariateNormal(ProbabilityModel):
         self.sigma = sigma
 
     # Returns a sample from a single variable normal distribution
+	# using the Box Muller transformation
     def sample(self):
-        x = super(UnivariateNormal, self).sample()
-        mu, sigma, pi, exp = self.mu, self.sigma, math.pi, math.exp
-        return 1/(sigma * math.pow(2*pi,1/2)) * exp(-math.pow(x-mu,2)/2*math.pow(sigma,2))
+		x, y = random.uniform(), random.uniform()
+		z = math.sqrt(-2*math.log(x))*math.cos(2*math.pi*y)
+		return self.sigma*z + self.mu
 
-    
-    
 # The sample space of this probability model is the set of D dimensional real
-# column vectors (modeled as numpy.array of size D x 1), and the probability 
-# measure is defined by the density function 
+# column vectors (modeled as numpy.array of size D x 1), and the probability
+# measure is defined by the density function
 # p(x) = 1/(det(Sigma)^(1/2) * (2*pi)^(D/2)) * exp( -(1/2) * (x-mu)^T * Sigma^-1 * (x-mu) )
 class MultiVariateNormal(ProbabilityModel):
-    
-    # Initializes a multivariate normal probability model object 
-    # parameterized by Mu (numpy.array of size D x 1) expectation vector 
+
+    # Initializes a multivariate normal probability model object
+    # parameterized by Mu (numpy.array of size D x 1) expectation vector
     # and symmetric positive definite covariance Sigma (numpy.array of size D x D)
     def __init__(self,Mu,Sigma):
-        self.mu = matrix(Mu)
-        self.sigma = matrix(Sigma)
-        self.D = Mu.shape[0]
+        self.Mu = Mu
+        self.Sigma = Sigma
+        self.D = [UnivariateNormal(0, 1) for x in range(Mu.shape[0])]
 
-    # Returns a sample from a multivariate Gaussian distribution.
+    # Returns a sample from a multivariate Gaussian distribution. It is a theorem
+    # that a vector of D independent normally distributed random variables has
+    # a natural inclusion into the space of multidimensional normal variables.
+    # i.e given Mu, and a vector Z of D ind. normal variables then there exists
+    # a matrix A such that Mu + AZ ~ N(Mu, Sigma) for some unique N. We use the
+    # Cholesky decomposition to compute this matrix
     def sample(self):
-        rands = [[super(MultiVariateNormal, self).sample()] for x in range(self.D)]
-        mu, sigma, pi, exp, D = self.mu, self.sigma, math.pi, math.exp, self.D
-        covFactor = linalg.det(linalg.matrix_power(sigma,1/2))
-        dimFactor = math.pow(2*pi,D/2)
-        conj = (rands-mu).T * sigma.I * (rands-mu)
-        return 1/(covFactor*dimFactor) * exp( (-.5)* conj )
-        
-    
+		A = linalg.cholesky(self.Sigma)
+		Z = [[x.sample()] for x in self.D]
+		Mu = self.Mu
+		return Mu + A.dot(Z)
 
-# The sample space of this probability model is the finite discrete set {0..k-1}, and 
-# the probability measure is defined by the atomic probabilities 
+# The sample space of this probability model is the finite discrete set {0..k-1}, and
+# the probability measure is defined by the atomic probabilities
 # P(i) = ap[i]
 class Categorical(ProbabilityModel):
-    
-    # Initializes a categorical (a.k.a. multinom, multinoulli, finite discrete) 
+    # Initializes a categorical (a.k.a. multinom, multinoulli, finite discrete)
     # probability model object with distribution parameterized by the atomic probabilities vector
     # ap (numpy.array of size k).
     def __init__(self,ap):
-        self.ap = ap
-        self.size = len(ap)
+		self.ap = ap
+		self.size = len(ap)
+		self.cutoffs = []
+		current_cut = 0
+		for i in range(self.size):
+			self.cutoffs = self.cutoffs + [ap[i] + current_cut]
+			current_cut += ap[i]
 
+	# So here the idea is just to draw a uniformly distributed number and
+	# use the cuttoffs to decide when to stop.
     def sample(self):
-        rand, size = super(Categorical, self).sample(), self.size
-        dx = 1/(float(size))
-        for x in range(size):
-            if (rand-(x+1)*dx) < 0:
-                return self.ap[x]
-        return nil
+		x = random.uniform()
+		for i in range(self.size):
+			if x > self.cutoffs[i]:
+				continue
+			return i
 
-
-# The sample space of this probability model is the union of the sample spaces of 
-# the underlying probability models, and the probability measure is defined by 
+# The sample space of this probability model is the union of the sample spaces of
+# the underlying probability models, and the probability measure is defined by
 # the atomic probability vector and the densities of the supplied probability models
 # p(x) = sum ad[i] p_i(x)
 class MixtureModel(ProbabilityModel):
-    
+
     # Initializes a mixture-model object parameterized by the
-    # atomic probabilities vector ap (numpy.array of size k) and by the tuple of 
+    # atomic probabilities vector ap (numpy.array of size k) and by the tuple of
     # probability models pm
     def __init__(self,ap,pm):
         self.ap = ap
         self.pm = pm
-        self.size = len(ap)
-
+        self.model = Categorical(ap)
+	
+	# There is a bijection between the subspace of mixture models mod their atomic
+	# probability vectors and the space of categorical models given by the mapping
+	# [Mixture(ap)] |--> Categorical(ap). first we sample the categorical model, and
+	# use the result as the index of the probability model we will use for this sample.
     def sample(self):
-        ap, pm, size = self.ap, self.pm, self.size
-        return sum([ap[x]*pm[x].sample() for x in range(size)])
+		which = self.model.sample()
+		samp = self.pm[which].sample()
+		return samp
+
+
