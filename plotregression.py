@@ -3,7 +3,7 @@ import util
 import random
 import evalWrapper
 import csv
-import regression1
+import regression
 
 DATA = [events for events in csv.reader(open('trainingData.csv'))]
 
@@ -23,9 +23,9 @@ def plot_plane_regression_validation():
 	plt.show()
 
 def plot_seismic_regression():
-	data = DATA
-	wrap = evalWrapper.EvalWrapper(['1069', 'P'], regression1.residual_regression_setup)
-	x, y = util.k_fold_cross_validation(10, wrap, data, regression1.residual_err)
+	data = DATA[1:]
+	wrap = evalWrapper.EvalWrapper(['908', 'P'], regression.residual_regression_setup, data, regression.seismic_nn)
+	x, y = util.k_fold_cross_validation(10, wrap, data, regression.residual_err)
 	plt.plot([i for i in range(len(x))], x, 'ro')
 	plt.plot([i for i in range(len(y))], y, 'bo')
 	plt.show() 

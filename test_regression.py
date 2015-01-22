@@ -9,10 +9,10 @@ import csv
 DATA = [event for event in csv.reader(open('trainingData.csv'))]
 # Tests the example in the regression.py klocallinearregression function
 def test_klocal1():
-#	print "Testing klocalLinearRegression"
-#	print "args: 908, P, [10.25, -15.50], DATA, 6"
-#	print klocalLinearRegression('908', 'P', [10.25, -15.50], DATA, 6)
-	pass
+	print "Testing klocalLinearRegression"
+	print "args: 908, P, [10.25, -15.50], DATA, 6"
+	print klocalLinearRegression('908', 'P', [10.25, -15.50], DATA, 6)
+	assert True == False
 
 # Tests the seismic metric in the util package, since the phase of the data
 # is the same as the query point, we should expect to see a finite distance.
@@ -33,6 +33,13 @@ def test_seismic3():
 def test_knn1():
 	assert set(k_nearest_neighbors(3, 1, [0, 1, 2, 3, 4, 5, 6], one_norm)) == set([1, 0, 2])
 	assert set(k_nearest_neighbors(4, 1, [0, 1, 2, 3, 4, 5, 6], one_norm)) == set([0, 1, 2, 3])
+
+def test_knn1():
+	hashfn = residual_hash
+	data = DATA
+	station, phase, x, k = '1069', 'P', (64.771446, -146.88665), 1
+	nn = k_nearest_neighbors(k, (x, phase, station), data, seismic_metric, hashfn)
+	assert True == True
 
 # Tests the parition function.
 def test_partition1():

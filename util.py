@@ -4,12 +4,19 @@ import heapq
 import random
 import ProbabilityModel
 
-# We want some memoization here
+# We want some memoization here: This class is a 
+# simple memoization of a function.
 class memoized(object):
+	# Constructor of a memoization of a FUNCTION via 
+	# an ARGHASH which makes the keys nice
 	def __init__(self, function, arghash):
 		self.function = function
 		self.arghash = arghash
 		self.reference = {}
+	# Calling the function first hashes the optional
+	# ARGS, and then if the computation is stored
+	# in self.reference, returns that value, otherwise
+	# stores and returns the function call with args.
 	def __call__(self, *args):
 		hsh = self.arghash(args)
 		if hsh in self.reference:
@@ -20,11 +27,10 @@ class memoized(object):
 			return value
 
 
-# k nearest neighbors: Given an integer K, a query point X, a 
+# K nearest neighbors: Given an integer K, a query point X, a 
 # set of DATA(csv.reader), and a DISTANCE function which computes the distance 
-# from a point of data to x. Computes the k nearest neighbors to x via the distance function.
-def k_nearest_neighbors(k, x, data, distance, arghash):
-	distance = memoized(distance, arghash)
+# from a point of data to x, returns the k nearest neighbors to x via the distance function.
+def k_nearest_neighbors(k, x, data, distance):
 	data = [events for events in data]
 	nneighbors = []
 	for event in data:
@@ -35,31 +41,55 @@ def k_nearest_neighbors(k, x, data, distance, arghash):
 			heapq.heappush(nneighbors, (-dist, event))
 		else:
 			heapq.heappushpop(nneighbors, (-dist, event))
+	nneighbors = sorted(nneighbors, key=lambda event: -event[0])
 	return [event[1] for event in nneighbors]
 
-# k-fold cross-validation: Given an integer K, a LEARNER(EvalWrapper), and EXAMPLES, 
-# performs k-fold cross validation. errFn gives the difference between a prediction
+# K nearest neighbors search: Given an integer K, query X, DATA(csv.reader), and 
+# a METRIC, returns the k nearest neighbors in data to x via the metric. Uses
+# breadth first search to compute the shortest path, since my function that is
+# linear in the data is taking too long.
+def k_nearest_neighbors_search():
+	pass
+
+# K nearest neighbors list: So if you keep recomputing the k nearest neighbors
+# you are going to be waiting a long time for cross validation. This returns a 
+# sorted list of all the nearest neighbors of a point X in examples with finite
+# distance.
+def nn_list(x, examples, distance):
+	nn = k_nearest_neighbors(len(examples), x, examples, distance)
+	return nn
+
+# K-fold cross-validation: Given an integer K, a LEARNER(EvalWrapper), and EXAMPLES, 
+# performs k-fold cross validation. ERRFN gives the difference between a prediction
 # and a data point
 def k_fold_cross_validation(k, learner, examples, errFn):
 	eT, eV = [], []
-	for size in range(1, 10):
+	for size in range(1, len(examples)):
 		eT0, eV0 = cross_validation(k, size, learner, examples, errFn) 
 		eT.append(eT0)
 		eV.append(eV0)
-		print eT, eV
+		print eT, eV, str(size) + '-nn'
 	return eT, eV 
 		
-# Performs k fold cross validation with dimension SIZE  with a given 
+# Performs K fold cross validation with dimension SIZE with a given 
 # LEARNER on a set of EXAMPLES, returns the mean of the sample error
 # for a given hypothesis calculated with the ERRFN.
 def cross_validation(k, size, learner, examples, errfn):
 	fold_errT, fold_errV = 0, 0
 	partitions = partition(examples, k, True)
 	for i in range(k):
+		percent = 0
+		print str(size) + '-nn, fold ' + str(i)
 		train, val = partitions.next()
 		hypothesis = learner.get_hypothesis(size, train)
-		for x in train:
-			fold_errT += errfn(x, hypothesis(x))
+		print 'training on set of ' + str(len(train)) + ' values'
+		comp = numpy.floor(float(len(train))/10)
+		for i in range(len(train)):
+			if i % comp == 0:
+				print str(percent) + '% complete'
+				percent += 10 
+			fold_errT += errfn(train[i], hypothesis(train[i]))
+		print 'validating on set of ' + str(len(val)) + ' values'
 		for x in val:
 			fold_errV += errfn(x, hypothesis(x))
 	return fold_errT/len(train), fold_errV/len(val)
