@@ -1,8 +1,7 @@
 This repository contains various code that is applicable to machine learning.
 
-I'm going to be doing some ML work now. I'm tired of getting rejected
-for frontend jobs because of my weak portfolio when I don't think that
-I would like the jobs in the first place. So I'm going to be doing a lot
+I'm going to be doing some ML work now.
+So I'm going to be doing a lot
 of math, and a lot of ml fun.
 
 The Probability Model can create uniform, single
