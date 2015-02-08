@@ -23,8 +23,8 @@ def plot_plane_regression_validation():
 	plt.show()
 
 def plot_seismic_regression():
-	data = DATA[1:]
-	wrap = evalWrapper.EvalWrapper(['908', 'P'], regression.residual_regression_setup, data, regression.seismic_nn)
+	data = util.get_component(DATA[1:], regression.seismic_shard, ['908', 'P'])
+	wrap = evalWrapper.EvalWrapper(['908', 'P'], regression.residual_regression_setup, data)
 	x, y = util.k_fold_cross_validation(10, wrap, data, regression.residual_err)
 	plt.plot([i for i in range(len(x))], x, 'ro')
 	plt.plot([i for i in range(len(y))], y, 'bo')

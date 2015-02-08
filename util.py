@@ -26,6 +26,16 @@ class memoized(object):
 			self.reference[hsh] = value
 			return value
 
+# So we want a way of splitting data by certain attributes, so DATA is a list of 
+# data. Points in data are fed into the SHARD function with the IV to determine
+# if the point has the desired attributes 
+def get_component(data, shard, iv):
+	distinguished = []
+	for point in data:
+		belongs = shard(point, iv)
+		if belongs:
+			distinguished = distinguished + [point]
+	return distinguished
 
 # K nearest neighbors: Given an integer K, a query point X, a 
 # set of DATA(csv.reader), and a DISTANCE function which computes the distance 
@@ -64,7 +74,7 @@ def nn_list(x, examples, distance):
 # and a data point
 def k_fold_cross_validation(k, learner, examples, errFn):
 	eT, eV = [], []
-	for size in range(1, len(examples)):
+	for size in range(1, 21):
 		eT0, eV0 = cross_validation(k, size, learner, examples, errFn) 
 		eT.append(eT0)
 		eV.append(eV0)
@@ -78,7 +88,7 @@ def cross_validation(k, size, learner, examples, errfn):
 	fold_errT, fold_errV = 0, 0
 	partitions = partition(examples, k, True)
 	for i in range(k):
-		percent = 0
+		percent, kfold_errT, kfold_errV = 0, 0, 0
 		print str(size) + '-nn, fold ' + str(i)
 		train, val = partitions.next()
 		hypothesis = learner.get_hypothesis(size, train)
@@ -86,13 +96,15 @@ def cross_validation(k, size, learner, examples, errfn):
 		comp = numpy.floor(float(len(train))/10)
 		for i in range(len(train)):
 			if i % comp == 0:
-				print str(percent) + '% complete'
 				percent += 10 
-			fold_errT += errfn(train[i], hypothesis(train[i]))
+			kfold_errT += errfn(train[i], hypothesis(train[i]))
 		print 'validating on set of ' + str(len(val)) + ' values'
 		for x in val:
-			fold_errV += errfn(x, hypothesis(x))
-	return fold_errT/len(train), fold_errV/len(val)
+			kfold_errV += errfn(x, hypothesis(x))
+		train_err, val_err = kfold_errT/len(train), kfold_errV/len(val)
+		fold_errT, fold_errV = fold_errT + train_err, fold_errV + val_err
+		print 'Errors: Validation = ' + str(val_err) + ' Training = ' + str(train_err)
+	return fold_errT/k, fold_errV/k
 
 # Returns a generator which produces the K-fold partitions of the LST of 
 # training examples. Randomizes examples before partitioning when RAND is
@@ -111,7 +123,7 @@ def partition(lst, k, rand):
 		yield train, val
 
 # Plane local regression function which takes a real X and predicts f(x) using
-# the K nearest neighbors on EXAMPLES and the 2-norm as the distance function
+# the K nearest neighbors on EXAMPLES and the 1-norm as the distance function
 def plane_local_regression(x, k, examples):
 	nn = k_nearest_neighbors(k, x, examples, plane_regression_norm)
 	nn = [item[1] for item in nn]

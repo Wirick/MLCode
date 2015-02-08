@@ -38,15 +38,23 @@ def seismic_metric(x, data):
 		distance = d(loc, x0)
 	return distance
 
+# If POINT has the same phase and station as IV(station, phase), returns 
+# True, returns False otherwise.
+def seismic_shard(point, iv):
+	station, phase = iv
+	if point[9] == phase and point[5] == station:
+		return True
+	return False
+
 # Seismic local linear regression function setup: takes a INITIAL(station, phase)
 # and predicts the time residual using the SIZE nearest neighbors on EXAMPLES,
 # and using the LOOKUP dictionary for computational efficiency. Returns the
 # appropriate klocal_linear_regression_lookup function, whose one argument
 # is a location. This is used as a hypothesis function.
-def residual_regression_setup(initial, size, examples, lookup):
-    return lambda x : klocal_linear_regression_lookup(initial[0], initial[1], 
+def residual_regression_setup(initial, size, examples):
+    return lambda x : klocalLinearRegression(initial[0], initial[1], 
 												(float(x[6]), float(x[7])), 
-												examples, size, lookup)
+												examples, size)
 
 #  Returns the error between a residual prediction FX and the actual residual at X.
 def residual_err(x, fx):
@@ -58,37 +66,6 @@ def residual_hash(x):
 	comp2 = tuple([tuple([str(x[1][1]), str(x[1][2])]), x[1][9], x[1][5]])
 	return comp1, comp2
 
-# This function returns all the nearest neighbors we will ever need on the residual
-# problem, that is, given INITIAL(station, phase) pair, writes a dictionary of nearest
-# neighbors in the EXAMPLES set to seismicnn.csv and is returned. If LOOKUP is true, the 
-# function simply returns the dictionary read from seismicnn.csv.
-def seismic_nn(initial, examples, lookup):
-	if lookup:
-		reader = csv.reader(open('seismicnn.csv', 'rb'))
-		return dict(x for x in reader)
-	writer = csv.writer(open('seismicnn.csv', 'wb'))
-	nn = defaultdict(lambda: [])
-	count, length = 0, np.floor(len(examples)/float(100))
-	point_clusters = defaultdict(lambda: [])
-	print 'computing point clusters on ' + str(len(examples)) + ' points.'
-	for point in range(len(examples)):
-		point_clusters[(examples[point][5], examples[point][9])] = point_clusters[(examples[point][5], examples[point][9])] + [point]
-	print 'computed seismic point clusters, of which there are ' + str(len(point_clusters.items()))
-	passcount = 0
-	for point in examples:
-		if count % length == 0:
-			print "computed " + str(passcount) + '% of examples'
-			passcount += 1
-		count += 1
-		loc = (float(point[1]), float(point[2]))
-		station, phase = initial
-		metric = memoized(seismic_metric, residual_hash)
-		if nn[(loc, phase, station)] == []:
-			nn[(loc, phase, station)] = nn_list((loc, phase, station), point_clusters[(station, phase)], metric)
-			key, value = (loc, phase, station), nn[(loc, phase, station)]
-			writer.writerow([str(key), value])
-	return nn
-
 ## Estimates the residual time of a query point x(lat, lon) using local
 ## linear regression.
 ## Inputs: station(str), phase(str), x(list of 2 floats:lat, lon), data(list)
@@ -99,15 +76,9 @@ def seismic_nn(initial, examples, lookup):
 # the right phase was observed at the designated station. Then average the resulting residuals
 def klocalLinearRegression(station, phase, x, data, k):
 	hashfn = residual_hash
-	nn = k_nearest_neighbors(k, (x, phase, station), data, seismic_metric, hashfn)
+	nn = k_nearest_neighbors(k, (x, phase, station), data, seismic_metric)
 	nn = [float(event[10]) for event in nn]
 	return np.mean(nn), np.var(nn)
-
-# Analogous to the above function, but does nearest neighbors lookup instead of computing.
-def klocal_linear_regression_lookup(station, phase, x, data, k, lookup):
-	nn = lookup[(x, phase, station)][:k]
-	residuals = [float(event[10]) for event in nn]
-	return np.mean(residuals), np.var(residuals)
 
 def localLinearRegressionForP1(x, data):
    pass
