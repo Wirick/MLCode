@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import util
 import random
 import evalWrapper
+import lookupWrapper
 import csv
 import regression
 
@@ -22,13 +23,16 @@ def plot_plane_regression_validation():
 	plt.plot([i for i in range(len(y))], y, 'bo')
 	plt.show()
 
-def plot_seismic_regression():
-	data = util.get_component(DATA[1:], regression.seismic_shard, ['908', 'P'])
-	wrap = evalWrapper.EvalWrapper(['908', 'P'], regression.residual_regression_setup, data)
+def plot_seismic_regression(station, phase):
+	data = util.get_component(DATA[1:], regression.seismic_shard, [station, phase])
+	look_wrap = lookupWrapper.LookupWrapper(util.k_nearest_neighbors_lookup, regression.eval_seismic_metric, 50, util.nn_reduce)
+	wrap = evalWrapper.EvalWrapper([station, phase], regression.residual_regression_setup, data, look_wrap.lookup)
 	x, y = util.k_fold_cross_validation(10, wrap, data, regression.residual_err)
+	filename = station + phase + 'Data.txt'
+	util.record_eval(x, y, filename)
 	plt.plot([i for i in range(len(x))], x, 'ro')
 	plt.plot([i for i in range(len(y))], y, 'bo')
 	plt.show() 
 
 if __name__ == '__main__':
-	plot_seismic_regression()
+	plot_seismic_regression('1069', 'S')

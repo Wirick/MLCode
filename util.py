@@ -3,6 +3,7 @@ import numpy
 import heapq
 import random
 import ProbabilityModel
+from collections import defaultdict
 
 # We want some memoization here: This class is a 
 # simple memoization of a function.
@@ -18,10 +19,12 @@ class memoized(object):
 	# in self.reference, returns that value, otherwise
 	# stores and returns the function call with args.
 	def __call__(self, *args):
+		print args
 		hsh = self.arghash(args)
 		if hsh in self.reference:
 			return self.reference[hsh]
 		else:
+			print self.function
 			value = self.function(*args)
 			self.reference[hsh] = value
 			return value
@@ -54,19 +57,28 @@ def k_nearest_neighbors(k, x, data, distance):
 	nneighbors = sorted(nneighbors, key=lambda event: -event[0])
 	return [event[1] for event in nneighbors]
 
-# K nearest neighbors search: Given an integer K, query X, DATA(csv.reader), and 
-# a METRIC, returns the k nearest neighbors in data to x via the metric. Uses
-# breadth first search to compute the shortest path, since my function that is
-# linear in the data is taking too long.
-def k_nearest_neighbors_search():
-	pass
+# K nearest neighbors lookup: Returns a dictionary whose keys are the
+# elements of DATA and whose values are the K nearest neighbors via the 
+# METRIC.
+def k_nearest_neighbors_lookup(k, data, metric):
+	nn = defaultdict(lambda: [])
+	for element in data:
+		neighbors = k_nearest_neighbors(k+1, element, data, metric)
+		nn[element] = str(neighbors[1:])
+	print nn
+	return nn
+
+# Function which returns lst[:size], it's a reduction function for lookup
+# computation
+def nn_reduce(size, lst):
+	return lst[:size]
 
 # K nearest neighbors list: So if you keep recomputing the k nearest neighbors
 # you are going to be waiting a long time for cross validation. This returns a 
-# sorted list of all the nearest neighbors of a point X in examples with finite
+# sorted list of LENGTH nearest neighbors of a point X in examples with finite
 # distance.
-def nn_list(x, examples, distance):
-	nn = k_nearest_neighbors(len(examples), x, examples, distance)
+def nn_list(x, examples, distance, length):
+	nn = k_nearest_neighbors(length, x, examples, distance)
 	return nn
 
 # K-fold cross-validation: Given an integer K, a LEARNER(EvalWrapper), and EXAMPLES, 
@@ -74,7 +86,7 @@ def nn_list(x, examples, distance):
 # and a data point
 def k_fold_cross_validation(k, learner, examples, errFn):
 	eT, eV = [], []
-	for size in range(1, 21):
+	for size in range(1, 31):
 		eT0, eV0 = cross_validation(k, size, learner, examples, errFn) 
 		eT.append(eT0)
 		eV.append(eV0)
@@ -121,6 +133,18 @@ def partition(lst, k, rand):
 				continue
 			train = train + slices[j]
 		yield train, val
+
+# Just a method for storing evaluation data so that things don't need to 
+# be recomputed
+def record_eval(train, val, filename):
+	f = open(filename, 'w')
+	f.write('trainerr\n')
+	for x in train:
+		f.write(str(x) + '\n')
+	f.write('valerr\n')
+	for x in val:
+		f.write(str(x) + '\n')
+	f.close()
 
 # Plane local regression function which takes a real X and predicts f(x) using
 # the K nearest neighbors on EXAMPLES and the 1-norm as the distance function

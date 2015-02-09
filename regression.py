@@ -38,6 +38,12 @@ def seismic_metric(x, data):
 		distance = d(loc, x0)
 	return distance
 
+# This metric is for the purposes of training, where you are manipulating
+# pieces of your dataset instead of just a loc, phase, station situation.
+def eval_seismic_metric(x, data):
+	print (x[1], x[2]), x[9], x[5], data
+	return seismic_metric(((float(x[1]), float(x[2])), x[9], x[5]), data)
+
 # If POINT has the same phase and station as IV(station, phase), returns 
 # True, returns False otherwise.
 def seismic_shard(point, iv):
@@ -51,10 +57,12 @@ def seismic_shard(point, iv):
 # and using the LOOKUP dictionary for computational efficiency. Returns the
 # appropriate klocal_linear_regression_lookup function, whose one argument
 # is a location. This is used as a hypothesis function.
-def residual_regression_setup(initial, size, examples):
-    return lambda x : klocalLinearRegression(initial[0], initial[1], 
-												(float(x[6]), float(x[7])), 
-												examples, size)
+def residual_regression_setup(initial, size, examples, lookup):
+	if len(lookup) == 0:
+		return lambda x : klocalLinearRegression(initial[0], initial[1], 
+								(float(x[6]), float(x[7])), examples, size)
+	else:
+		return lambda x : k_local_regression_lookup((float(x[6]), float(x[7])), lookup)
 
 #  Returns the error between a residual prediction FX and the actual residual at X.
 def residual_err(x, fx):
@@ -65,6 +73,11 @@ def residual_hash(x):
 	comp1 = tuple([tuple([str(x[0][0][0]), str(x[0][0][1])]), x[0][1], x[0][2]])
 	comp2 = tuple([tuple([str(x[1][1]), str(x[1][2])]), x[1][9], x[1][5]])
 	return comp1, comp2
+
+# local linear regression with lookup, assuming X is in LOOKUP, returns the mean
+# of the residuals in lookup[x].
+def k_local_regression_lookup(x, lookup):
+	return np.mean([float(y[10]) for y in lookup[x]]) 
 
 ## Estimates the residual time of a query point x(lat, lon) using local
 ## linear regression.
@@ -92,6 +105,9 @@ def localLinearRegressionForS1(x, data):
 def localLinearRegressionForS2(x, data):
    pass
 
+# So now we are going to want to predict the variance of
+# our predictions using the variance formula in the assignment.
+#
 
 ## Estimate the residual time using locally weighted
 ## regression with Gaussian or Laplacian kernel
