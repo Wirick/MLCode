@@ -98,7 +98,7 @@ def k_fold_cross_validation(k, learner, examples, errFn):
 # for a given hypothesis calculated with the ERRFN.
 def cross_validation(k, size, learner, examples, errfn):
 	fold_errT, fold_errV = 0, 0
-	partitions = partition(examples, k, True)
+	partitions = partition(examples, k, False)
 	for i in range(k):
 		percent, kfold_errT, kfold_errV = 0, 0, 0
 		print str(size) + '-nn, fold ' + str(i)
@@ -175,3 +175,65 @@ def two_norm(x0, x1):
 # in R^2 by taking the 1-norm of x0 and x1[0]
 def plane_regression_norm(x0, x1):
 	return one_norm(x0, x1[0])
+
+# Returns a list of (value, abs_frequency, relative_freq) tuples using
+# attributes drawn from ATTR(list) combined using
+# some COMBINE function and drawing from DATA(csv). The function takes
+# a data point and returns the value of the attribute applicable to that
+# datum. The default combine function is assuming one attribute is being examined.
+def discrete_histogram(data, attr, combine=lambda x: x[0]):
+	data = [events for events in csv.reader(open(data))]
+	attributes, data = data[0], data[1:]
+	order = len(data)
+	attr_index = [attributes.index(x) for x in attr]
+	histogram = defaultdict(lambda: 0)
+	tuples = []
+	for point in data:
+		if point == []:
+			continue
+		attr_vals = combine([point[x] for x in attr_index])
+		histogram[attr_vals] += 1
+	for key in histogram:
+		tuples = tuples + [(key, histogram[key], histogram[key]/float(order))]
+	return tuples
+
+# Returns a dictionary whose keys are the attributes in csv on the first
+# line of DATA, the values are default dictionary whose keys are attribute values
+# and whose values are the absolute frequency of the value in the dataset
+def complete_histogram(data):
+	data = [events for events in csv.reader(open(data))]
+	histogram = defaultdict(lambda: defaultdict(lambda: 0))
+	keys = data[0]
+	data = data[1:]
+	for point in data:
+		for i in range(len(keys)):
+			histogram[keys[i]][point[i]] += 1
+	print histogram
+	
+# Returns the confusion matrix of ATTR1 and ATTR2 and drawing from DATA, 
+# also returns respectively the list of row and column values that index
+# the matrix.
+def confusion_matrix(data, attr1, attr2):
+	row_vals = discrete_histogram(data, [attr1])
+	row_keys = key_function(row_vals)
+	col_keys = key_function(discrete_histogram(data, [attr2]))
+	hist2 = discrete_histogram(data, [attr1, attr2], lambda x: tuple(x))
+	rows = defaultdict(lambda: [])
+	for key in row_vals:
+		rows[key[0]] = [0 for i in range(len(col_keys))]
+	for key in hist2:
+		row, col = key[0]
+		row_freq = row_vals[row_keys.index(row)][1]
+		rows[row][col_keys.index(col)] = float(key[1])/row_freq
+	matr = []
+	for key in row_keys:
+		matr.append(rows[key])
+	return np.matrix(matr), row_keys, col_keys
+
+# Given a HISTOGRAM, returns a list of the values x[0] of the points x in 
+# the histogram.
+def key_function(histogram):
+	keys = []
+	for point in histogram:
+		keys = keys + [point[0]]
+	return keys
