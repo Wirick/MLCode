@@ -1,6 +1,14 @@
 import random_forest
+import csv
 from numpy.random import uniform
 import math
+
+def vr_generator(var_vector, prediction_index, dist_classes, data_file):
+  Data = [events for events in csv.reader(open(data_file))]
+  labels = Data[0]
+  rest = Data[2:]
+  vr = VariableRanker(rest, var_vector, prediction_index, dist_classes)
+  return vr, labels
 
 def variable_range(examples, var):
   if var[1] == 'd':
@@ -58,3 +66,4 @@ class VariableRanker:
           permuted_succ += 1
       succ_rate, permuted_succ = float(succ_rate)/len(oob), float(permuted_succ)/len(oob)
       print "Originally a ", succ_rate, " success rate, with permution to ", permuted_succ
+
