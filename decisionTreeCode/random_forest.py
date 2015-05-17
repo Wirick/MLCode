@@ -97,8 +97,9 @@ class RandomForest:
   forest = []
   def __init__(self, examples, trees, mtry, attributes, predict_index, attr_fn, dist_classes, order):
     for i in range(trees):
+      print "Generating tree ", i, ' of order ', order/9
       picks = set()
-      for j in range(int(math.floor(order*1/float(3)))):
+      for j in range(int(math.floor(order*1/float(9)))):
         pick = math.floor(uniform(0, 1)*order)
         picks.add(pick)
       picks = list(picks)

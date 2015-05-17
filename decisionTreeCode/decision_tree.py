@@ -15,7 +15,7 @@ def dt_generator(examples, attributes, parent_examples, predict_index, importanc
       return DecisionTree((predict_index, 'd'), initial)
     if attributes == []:
       return DecisionTree((predict_index, 'd'), plurality(examples, predict_index))
-    if len(examples) < 25:
+    if len(examples) < 100:
       return DecisionTree((predict_index, 'd'), plurality(examples, predict_index))
     dist_attr, attr_vals = importance(attributes, examples, predict_index, positive_classes)
     tree = DecisionTree(dist_attr, attr_vals)

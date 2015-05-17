@@ -35,7 +35,7 @@ class VariableRanker:
     if self.forest == []:
       mtry = int(math.floor(math.sqrt(len(self.variables))))
       self.forest = random_forest.RandomForest(self.data, self.trees, mtry, self.variables, self.prediction_index, random_forest.rf_attr_fn, self.dist_classes, len(self.data))
-      print self.trees, ' have been grown using a set of ', len(self.variables), ' variables.'
+      print self.trees, '  have been grown using a set of ', len(self.variables), ' variables.'
     elif regrow:
       mtry = int(math.floor(math.sqrt(len(self.variables))))
       self.forest = random_forest.RandomForest(self.data, self.trees, mtry, self.variables, self.prediction_index, random_forest.rf_attr_fn, self.dist_classes, len(self.data))
@@ -50,12 +50,12 @@ class VariableRanker:
       print var, ' range is ', var_range
       permution = None
       succ_rate, permuted_succ = 0, 0
-      if var[1] == 'd':
-        permution = int(math.floor(uniform(0, 1)*len(var_range)))
-        permution = var_range[permution]
-      else:
-        permution = uniform(0, 1)*(var_range[1] - var_range[0])
       for elts in oob:
+        if var[1] == 'd':
+          permution = int(math.floor(uniform(0, 1)*len(var_range)))
+          permution = var_range[permution]
+        else:
+          permution = uniform(0, 1)*(var_range[1] - var_range[0])
         actual = self.data[elts][self.prediction_index]
         predicted = self.forest.test_predict(self.data[elts], elts)
         perm_tuple = self.data[elts][:var[0]] + [permution] + self.data[elts][var[0]+1:]
