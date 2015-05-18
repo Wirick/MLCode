@@ -1,15 +1,22 @@
+# This module contains code for class VariableRanker, which uses a random forest to
+# estimate the importance of each variable with respect to a particular index of the
+# data. There is a generator for a variable ranker, as well as a range function.
 import random_forest
 import csv
 from numpy.random import uniform
 import math
 
-def vr_generator(var_vector, prediction_index, dist_classes, data_file):
+# Returns a v(ariable)r(anker) and a set of labels using a VAR_VECTOR of variables,
+# a PREDICTION_INDEX in the data with a set of DIST_CLASSES, since this is classification.
+# the DATA_FILE contains the comma seperated values, and the default trees are set to 500.
+def vr_generator(var_vector, prediction_index, dist_classes, data_file, trees=500):
   Data = [events for events in csv.reader(open(data_file))]
   labels = Data[0]
   rest = Data[2:]
-  vr = VariableRanker(rest, var_vector, prediction_index, dist_classes)
+  vr = VariableRanker(rest, var_vector, prediction_index, dist_classes, trees)
   return vr, labels
 
+# Returns the range of a continuous or discrete VAR(int, {'c', 'd'}) in EXAMPLES
 def variable_range(examples, var):
   if var[1] == 'd':
     range = set()
@@ -21,16 +28,21 @@ def variable_range(examples, var):
     for datum in examples:
       data_val = float(datum[var[0]])
       range_min, range_max = min(range_min, data_val), max(range_max, data_val)
-      return (range_min, range_max)
+    return (range_min, range_max)
 
+# A VariableRanker is a random forest together with a variable ranking function,
+# which is used to estimate the relative importance of a set of variables in a 
+# set of data with respect to a prediction index and some distinguished class
 class VariableRanker:
-  trees = 500
   forest = []
-  def __init__(self, data, variables, prediction_index, dist_classes):
+  # Creates a ranker.
+  def __init__(self, data, variables, prediction_index, dist_classes, trees=500):
+    self.trees = trees
     self.data = data
     self.variables = variables
     self.prediction_index = prediction_index
     self.dist_classes = dist_classes
+  # This constructs a random forest from which predictions are drawn in the ranking function
   def grow_trees(self, regrow=False):
     if self.forest == []:
       mtry = int(math.floor(math.sqrt(len(self.variables))))
@@ -42,28 +54,39 @@ class VariableRanker:
       print self.trees, ' have been regrown using a set of ', len(self.variables), ' variables.' 
     else:
       print "Already a forest in place, add regrow=True to override."
+  # Ranks the variables in this variable ranker.
   def variable_ranking(self):
     self.grow_trees()
     oob = self.forest.oob_set_generator()
+    oob_length, First, elt_vals, var_vals, succ_rate = len(oob), True, {}, {}, 0
     for var in self.variables:
       var_range = list(variable_range(self.data, var))
-      print var, ' range is ', var_range
+      range_len = len(var_range)
+      print var
       permution = None
-      succ_rate, permuted_succ = 0, 0
+      permuted_succ =  0
       for elts in oob:
+        if First:
+          actual = self.data[elts][self.prediction_index]
+          elt_vals[elts] = actual
+          predicted = self.forest.test_predict(self.data[elts], elts)
+          if actual == predicted:
+            succ_rate += 1
         if var[1] == 'd':
-          permution = int(math.floor(uniform(0, 1)*len(var_range)))
+          permution = int(math.floor(uniform(0, 1)*range_len))
           permution = var_range[permution]
         else:
           permution = uniform(0, 1)*(var_range[1] - var_range[0])
-        actual = self.data[elts][self.prediction_index]
-        predicted = self.forest.test_predict(self.data[elts], elts)
         perm_tuple = self.data[elts][:var[0]] + [permution] + self.data[elts][var[0]+1:]
-        permuted_prediction = self.forest.test_predict(perm_tuple, elts)
-        if actual == predicted:
-          succ_rate += 1
-        if actual == permuted_prediction:
+        permuted_prediction = self.forest.predict(perm_tuple)
+        if elt_vals[elts] == permuted_prediction:
           permuted_succ += 1
-      succ_rate, permuted_succ = float(succ_rate)/len(oob), float(permuted_succ)/len(oob)
+      if First:
+        succ_rate = float(succ_rate)/oob_length
+      First = False
+      permuted_succ = float(permuted_succ)/oob_length
       print "Originally a ", succ_rate, " success rate, with permution to ", permuted_succ
-
+      print "A difference of ", succ_rate - permuted_succ
+      var_vals[var] = succ_rate - permuted_succ
+    for x in var_vals.items():
+      print x[0], x[1]
