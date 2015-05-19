@@ -6,7 +6,9 @@ import operator
 # the attributes used to construct the tree using the IMPORTANCE function and a PREDICT_INDEX. The importance
 # function decides which of a subset of attributes (given by the ATTR_FN) to use to split the data given a set
 # of POSITIVE_CLASSES.
-def dt_generator(examples, attributes, parent_examples, predict_index, importance, attr_fn, positive_classes, order):
+def dt_generator(examples, attributes, parent_examples, predict_index, importance, attr_fn, positive_classes, order, max_depth=200):
+    if max_depth == 0:
+      attributes = []
     if not examples:
       return DecisionTree((predict_index, 'd'), plurality(parent_examples, predict_index))
     changed, initial = False, None
@@ -37,7 +39,7 @@ def dt_generator(examples, attributes, parent_examples, predict_index, importanc
             dist_examples.add(e)
       attr_list = attr_fn(attributes, dist_attr)
       new_order = len(dist_examples)
-      subtree = dt_generator(dist_examples, attr_list, examples, predict_index, importance, attr_fn, positive_classes, new_order)
+      subtree = dt_generator(dist_examples, attr_list, examples, predict_index, importance, attr_fn, positive_classes, new_order, max_depth-1)
       tree.add_branch(subtree, val)
     return tree
   

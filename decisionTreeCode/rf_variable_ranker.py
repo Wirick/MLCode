@@ -102,5 +102,6 @@ class VariableRanker:
       print "A difference of ", dist_succ_rate - perm_dist_succ
       var_vals[var] = succ_rate - permuted_succ
       var_vals[(var, 'd')] = dist_succ_rate - perm_dist_succ
-    for x in var_vals.items():
+    var_vals = sorted(var_vals.items(), key=lambda x: x[1], reverse=True)
+    for x in var_vals:
       print x[0], x[1]
