@@ -1,4 +1,4 @@
-# This module contains code for class VariableRanker, which uses a random forest to
+#This module contains code for class VariableRanker, which uses a random forest to
 # estimate the importance of each variable with respect to a particular index of the
 # data. There is a generator for a variable ranker, as well as a range function.
 import random_forest
@@ -57,21 +57,27 @@ class VariableRanker:
   # Ranks the variables in this variable ranker.
   def variable_ranking(self):
     self.grow_trees()
+    dist_classes = self.dist_classes
     oob = self.forest.oob_set_generator()
-    oob_length, First, elt_vals, var_vals, succ_rate = len(oob), True, {}, {}, 0
+    oob_length, First, elt_vals, var_vals = len(oob), True, {}, {}
+    succ_rate, dist_succ_rate, dist_order =  0, 0, 0
     for var in self.variables:
       var_range = list(variable_range(self.data, var))
       range_len = len(var_range)
       print var
       permution = None
-      permuted_succ =  0
+      permuted_succ, perm_dist_succ =  0, 0
       for elts in oob:
         if First:
           actual = self.data[elts][self.prediction_index]
           elt_vals[elts] = actual
           predicted = self.forest.test_predict(self.data[elts], elts)
+          if actual in dist_classes:
+            dist_order += 1
           if actual == predicted:
             succ_rate += 1
+            if actual in dist_classes:
+              dist_succ_rate += 1
         if var[1] == 'd':
           permution = int(math.floor(uniform(0, 1)*range_len))
           permution = var_range[permution]
@@ -79,14 +85,22 @@ class VariableRanker:
           permution = uniform(0, 1)*(var_range[1] - var_range[0])
         perm_tuple = self.data[elts][:var[0]] + [permution] + self.data[elts][var[0]+1:]
         permuted_prediction = self.forest.predict(perm_tuple)
-        if elt_vals[elts] == permuted_prediction:
+        actual = elt_vals[elts]
+        if actual == permuted_prediction:
           permuted_succ += 1
+          if actual in dist_classes:
+            perm_dist_succ += 1
       if First:
         succ_rate = float(succ_rate)/oob_length
+        dist_succ_rate = float(dist_succ_rate)/dist_order
       First = False
       permuted_succ = float(permuted_succ)/oob_length
+      perm_dist_succ = float(perm_dist_succ)/dist_order
       print "Originally a ", succ_rate, " success rate, with permution to ", permuted_succ
       print "A difference of ", succ_rate - permuted_succ
+      print "WRT Distinguised classes, a success rate of:", dist_succ_rate, 'with permution to ', perm_dist_succ
+      print "A difference of ", dist_succ_rate - perm_dist_succ
       var_vals[var] = succ_rate - permuted_succ
+      var_vals[(var, 'd')] = dist_succ_rate - perm_dist_succ
     for x in var_vals.items():
       print x[0], x[1]
