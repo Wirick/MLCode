@@ -7,21 +7,17 @@ import operator
 import math
 import decision_tree
 
-# The or
+# The ordered importance treats the attributes as ordered with respect to importance
+# and splits the data based on that metric.
 def ordered_importance(attributes, examples, predict_index, positive_classes, order):
   if len(attributes) == 0:
     return [], []
   attr = attributes[0]
-  if attr[1] == 'd':
-    vals = defaultdict(lambda: 0)
-    for e in examples:
-      vals[e[attr[0]]] += 1
-    return attr, [keys for keys in vals]
   if attr[1] == 'c':
-    ordered = sorted(examples, key=lambda x: float(x[attr[0]]))
-    length = int(math.ceil(len(ordered)/float(2)))
-    vals = [(ordered[0][attr[0]], ordered[length][attr[0]]), (ordered[length][attr[0]], ordered[len(ordered) - 1][attr[0]])]
-    return attr, vals
+      gini_score, rang = continuous_gini(attr[0], examples, predict_index, positive_classes, order)
+  else:
+      gini_score, rang = discrete_gini(attr[0], examples, predict_index, positive_classes, order)
+  return attr, rang
 
 # The discrete gini looks for the greatest gini score for each element with respect to
 # POSITIVE_CLASSES in a set of EXAMPLES of magnitude ORDER with respect to some PREDICT_INDEX.
@@ -124,7 +120,6 @@ def wtd_rf_attr_fn(attributes, elt):
   else:
     index = int(math.floor((len(lst)-1)*x))
     return tuple(lst[1:index] + [lst[0]] + lst[index+1:])
-  
 
 # The RandomForest class is a set of decision trees that vote on their choice for 
 # a distinguished index in the data.
