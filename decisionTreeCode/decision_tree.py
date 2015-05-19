@@ -1,14 +1,11 @@
 from collections import defaultdict
 import random
 import operator
-
 # Generates a decision tree with given ORDER and EXAMPLES as data. ATTRIBUES is a vector of (int, {'c', 'd'}) describing
 # the attributes used to construct the tree using the IMPORTANCE function and a PREDICT_INDEX. The importance
 # function decides which of a subset of attributes (given by the ATTR_FN) to use to split the data given a set
 # of POSITIVE_CLASSES.
-def dt_generator(examples, attributes, parent_examples, predict_index, importance, attr_fn, positive_classes, order, max_depth=200):
-    if max_depth == 0:
-      attributes = []
+def dt_generator(examples, attributes, parent_examples, predict_index, importance, attr_fn, positive_classes, order):
     if not examples:
       return DecisionTree((predict_index, 'd'), plurality(parent_examples, predict_index))
     changed, initial = False, None
@@ -23,7 +20,7 @@ def dt_generator(examples, attributes, parent_examples, predict_index, importanc
         break
     if not changed:
       return DecisionTree((predict_index, 'd'), initial)
-    if attributes == []:
+    if len(attributes) == 0:
       return DecisionTree((predict_index, 'd'), plurality(examples, predict_index))
     dist_attr, attr_vals = importance(attributes, examples, predict_index, positive_classes, order)
     tree = DecisionTree(dist_attr, attr_vals)
@@ -33,16 +30,16 @@ def dt_generator(examples, attributes, parent_examples, predict_index, importanc
         for e in examples:
           if float(e[dist_attr[0]]) >= float(val[0]) and float(e[dist_attr[0]]) < float(val[1]):
             dist_examples.add(e)
-      else: 
+      else:
         for e in examples:
           if e[dist_attr[0]] in val:
             dist_examples.add(e)
       attr_list = attr_fn(attributes, dist_attr)
       new_order = len(dist_examples)
-      subtree = dt_generator(dist_examples, attr_list, examples, predict_index, importance, attr_fn, positive_classes, new_order, max_depth-1)
+      subtree = dt_generator(dist_examples, attr_list, examples, predict_index, importance, attr_fn, positive_classes, new_order)
       tree.add_branch(subtree, val)
-    return tree
-  
+    return tree  
+
 # Returns the most voted ex[INDEX] for ex in EXAMPLES.
 def plurality(examples, index):
     dic = defaultdict(lambda: 0)

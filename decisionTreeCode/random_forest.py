@@ -7,27 +7,47 @@ import operator
 import math
 import decision_tree
 
-def random_forest_generator(examples, attributes, parent_examples, predict_index, importance, attr_fn):
-  pass
+# The or
+def ordered_importance(attributes, examples, predict_index, positive_classes, order):
+  if len(attributes) == 0:
+    return [], []
+  attr = attributes[0]
+  if attr[1] == 'd':
+    vals = defaultdict(lambda: 0)
+    for e in examples:
+      vals[e[attr[0]]] += 1
+    return attr, [keys for keys in vals]
+  if attr[1] == 'c':
+    ordered = sorted(examples, key=lambda x: float(x[attr[0]]))
+    length = int(math.ceil(len(ordered)/float(2)))
+    vals = [(ordered[0][attr[0]], ordered[length][attr[0]]), (ordered[length][attr[0]], ordered[len(ordered) - 1][attr[0]])]
+    return attr, vals
 
 # The discrete gini looks for the greatest gini score for each element with respect to
-# POSITIVE_CLASSES in a set of EXAMPLES of magnitude ORDER with respect to some PREDICT_INDEX. 
+# POSITIVE_CLASSES in a set of EXAMPLES of magnitude ORDER with respect to some PREDICT_INDEX.
 # It then takes the top elements and returns a partition comprising that subset and then everything else.
 def discrete_gini(attribute, examples, predict_index, positive_classes, order):
   order_vals, counts = defaultdict(lambda: 0), defaultdict(lambda: 0)
+  all_positive = True
   for ex in examples:
     if ex[predict_index] in positive_classes:
       order_vals[ex[attribute]] += 1
+    else: 
+      all_positive = False
     counts[ex[attribute]] += 1
   val_order = len(order_vals.items())
   dist_order, dist_set = int(math.floor(math.sqrt(val_order))), []
   vals = defaultdict(lambda: 0)
   for key, value in order_vals.items():
     vals[key] = value / float(counts[key])
-  sorted_vals = sorted(vals.items(), key=operator.itemgetter(1), reverse=True) 
+  sorted_vals = sorted(vals.items(), key=operator.itemgetter(1), reverse=True)
   side1count, side1pos, side2count, side2pos = 0, 0, 0, 0
-  yes_split = sorted_vals[:dist_order]
-  no_split = sorted_vals[dist_order:]
+  if all_positive:
+    yes_split = sorted_vals[:1]
+    no_split = sorted_vals[1:]
+  else:
+    yes_split = sorted_vals[:dist_order]
+    no_split = sorted_vals[dist_order:]
   for item in vals.items():
     if item in yes_split:
       side1count += counts[item[0]]
@@ -41,8 +61,8 @@ def discrete_gini(attribute, examples, predict_index, positive_classes, order):
     if len(no_split) == 1:
       return gini_score, (yes_split[0][0], no_split[0][0])
     return gini_score, tuple(yes_split[0][0])
-  return gini_score, (tuple([x[0] for x in yes_split]), tuple([x[0] for x in no_split]))
-  
+  return gini_score, (tuple([x[0] for x in yes_split]), tuple([x[0] for x in no_split]))  
+
 # The continuous gini looks at an ATTRIBUTE and decides where to split the EXAMPLES of size ORDER with
 # respect to some POSTIVE_CLASSES and PREDICT_INDEX.
 def continuous_gini(attribute, examples, predict_index, positive_classes, order):
@@ -95,14 +115,26 @@ def rf_gini_split(attributes, examples, predict_index, positive_classes, order):
 def rf_attr_fn(attributes, elt):
   return attributes
 
+# To go with the ordered importance fun
+def wtd_rf_attr_fn(attributes, elt):
+  lst = list(attributes)
+  x = rnd.uniform(0, 1)
+  if x < .25:
+    return tuple(lst[1:])
+  else:
+    index = int(math.floor((len(lst)-1)*x))
+    return tuple(lst[1:index] + [lst[0]] + lst[index+1:])
+  
+
 # The RandomForest class is a set of decision trees that vote on their choice for 
 # a distinguished index in the data.
 class RandomForest:
   # A random forest takes a set of EXAMPLES of size ORDER, and constructs TREES(int), using MTRY number
   # of ATTR_FN(ATTRIBUTES) in the split evaluation for each branch with respect to some PREDICT_INDEX.
-  def __init__(self, examples, trees, mtry, attributes, predict_index, attr_fn, dist_classes, order):
+  def __init__(self, examples, trees, mtry, attributes, predict_index, attr_fn, dist_classes, order, imp):
     self.forest = set()
     self.trees = trees
+    self.importance_fn = imp
     self.order = set(range(order))
     bootstrap_order = int(math.floor(order*2/float(3)))
     for i in range(trees):
@@ -113,7 +145,7 @@ class RandomForest:
         growth_indices.add(pick)
         dist_elt = tuple(examples[pick])
         picks.add(dist_elt)
-      tree = decision_tree.dt_generator(picks, attributes, [], predict_index, rf_gini_split, rf_attr_fn, dist_classes, len(picks))
+      tree = decision_tree.dt_generator(picks, attributes, [], predict_index, imp, attr_fn, dist_classes, len(picks))
       tree.set_growth_indices(growth_indices)
       self.forest.add(tree)
   # Used to generate a set of elements from the original dataset, taken from the construction indices

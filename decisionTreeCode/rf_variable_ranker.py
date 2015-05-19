@@ -9,11 +9,11 @@ import math
 # Returns a v(ariable)r(anker) and a set of labels using a VAR_VECTOR of variables,
 # a PREDICTION_INDEX in the data with a set of DIST_CLASSES, since this is classification.
 # the DATA_FILE contains the comma seperated values, and the default trees are set to 500.
-def vr_generator(var_vector, prediction_index, dist_classes, data_file, trees=500):
+def vr_generator(var_vector, prediction_index, dist_classes, data_file, trees=500, attr_fn=random_forest.rf_attr_fn, imp=random_forest.rf_gini_split):
   Data = [events for events in csv.reader(open(data_file))]
   labels = Data[0]
   rest = Data[2:]
-  vr = VariableRanker(rest, var_vector, prediction_index, dist_classes, trees)
+  vr = VariableRanker(rest, var_vector, prediction_index, dist_classes, trees, attr_fn, imp)
   return vr, labels
 
 # Returns the range of a continuous or discrete VAR(int, {'c', 'd'}) in EXAMPLES
@@ -36,22 +36,22 @@ def variable_range(examples, var):
 class VariableRanker:
   forest = []
   # Creates a ranker.
-  def __init__(self, data, variables, prediction_index, dist_classes, trees=500):
+  def __init__(self, data, variables, prediction_index, dist_classes, trees, attr_fn, imp):
+    self.attr_fn = attr_fn
     self.trees = trees
     self.data = data
     self.variables = variables
     self.prediction_index = prediction_index
     self.dist_classes = dist_classes
+    self.importance_fn = imp
   # This constructs a random forest from which predictions are drawn in the ranking function
   def grow_trees(self, regrow=False):
-    if self.forest == []:
+    if self.forest == [] or regrow:
       mtry = int(math.floor(math.sqrt(len(self.variables))))
-      self.forest = random_forest.RandomForest(self.data, self.trees, mtry, self.variables, self.prediction_index, random_forest.rf_attr_fn, self.dist_classes, len(self.data))
+      data, trees, var, pred_index = self.data, self.trees, self.variables, self.prediction_index
+      attr_fn, dist_classes, order, imp = self.attr_fn, self.dist_classes, len(self.data), self.importance_fn
+      self.forest = random_forest.RandomForest(data, trees, mtry, var, pred_index, attr_fn, dist_classes, order, imp)
       print self.trees, '  have been grown using a set of ', len(self.variables), ' variables.'
-    elif regrow:
-      mtry = int(math.floor(math.sqrt(len(self.variables))))
-      self.forest = random_forest.RandomForest(self.data, self.trees, mtry, self.variables, self.prediction_index, random_forest.rf_attr_fn, self.dist_classes, len(self.data))
-      print self.trees, ' have been regrown using a set of ', len(self.variables), ' variables.' 
     else:
       print "Already a forest in place, add regrow=True to override."
   # Ranks the variables in this variable ranker.
