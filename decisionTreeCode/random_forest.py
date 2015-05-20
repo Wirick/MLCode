@@ -115,7 +115,7 @@ def rf_attr_fn(attributes, elt):
 def wtd_rf_attr_fn(attributes, elt):
   lst = list(attributes)
   x = rnd.uniform(0, 1)
-  if x < .25:
+  if x < .75:
     return tuple(lst[1:])
   else:
     index = int(math.floor((len(lst)-1)*x))
