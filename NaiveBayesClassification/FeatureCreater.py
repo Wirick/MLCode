@@ -31,13 +31,13 @@ class FeatureGenerator:
         for token in tokens:
           dir_pop[token] += 1
         ordered = sorted(dir_pop.items(), key=lambda x: x[1], reverse=True)
-        if len(ordered) > 200:
-          ordered = ordered[:200]
+        if len(ordered) > 50:
+          ordered = ordered[:50]
         ordered = set([x[0] for x in ordered])
         intermediate_tokens = intermediate_tokens | ordered
       intermediate_tokens = sorted(list(intermediate_tokens), key=lambda x: dir_pop[x], reverse=True)
-      if len(intermediate_tokens) > 1000:
-        intermediate_tokens = intermediate_tokens[:1000]
+      if len(intermediate_tokens) > 10000:
+        intermediate_tokens = intermediate_tokens[:10000]
       intermediate_tokens = set(intermediate_tokens)
       all_tokens = (all_tokens - intermediate_tokens) | (intermediate_tokens - all_tokens) 
     pickle.dump(list(all_tokens), open('token_list.pkl', 'w'))

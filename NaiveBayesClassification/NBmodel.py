@@ -25,26 +25,44 @@ def generate_Boolean_bayes(input_dirs, features_file, model_file):
           if munge[i] > 0:
             nb_model[(i, label)] += 1
             probs[i] += 1
+    for i in range(len(features)):
+      for lab in labels:
+        if nb_model[(i, lab)] > 0:
+          nb_model[(i, lab)] = math.log(nb_model[(i, lab)]/float(probs[i]))
     for lab in labels:
       nb_model[lab] = math.log(nb_model[lab]/float(probs['order']))
-    for i in range(len(features)):
-      if i == 1540:
-        print probs[i], nb_model[(i, 'ham')], nb_model[(i, 'spam')]
-      if probs[i] > 0:
-        for lab in labels:
-          if nb_model[(i, lab)] > 0:
-            nb_model[(i, lab)] = math.log(nb_model[(i, lab)]) - math.log(float(probs[i]))
-          else:
-            nb_model[(i, lab)] = -float('inf')
-      else:
-        probs[i] = -float('inf')
-        for lab in labels:
-          nb_model[(i, lab)] = -float('inf')
     dic = {}
     dic.update(nb_model)
     pickle.dump(dic, open(model_file, 'w'))
     return NB_Boolean(features_file, model_file)
-        
+
+def generate_NTF_bayes(input_dirs, features_file, model_file):
+    labels = []
+    nb_model, probs = defaultdict(lambda: 0), defaultdict(lambda: 0)
+    features = pickle.load(open(features_file, 'rb'))
+    feat_order = len(features)
+    for directory in input_dirs:
+      print "Generating for dir", directory[6:]
+      label = directory[6:]
+      labels = labels + [label]
+      for f in get_files(directory):
+        nb_model[label] += 1
+        probs['order'] += 1
+        munge = munge_NTF(f, features)
+        for i in range(feat_order):
+          if munge[i] > 0:
+            nb_model[(i, label)] += munge[i]
+             probs[i] += 1
+    for i in range(feat_order):
+      for lab in labels:
+        if nb_model[(i, lab)] > 0:
+          nb_model[(i, lab)] = nb_model[(i, lab)]/float(probs[i])
+    for lab in labels:
+      nb_model[lab] = math.log(nb_model[lab]/float(proba['order']))
+    dic = {}
+    dic.update(nb_model)
+    pickle.dump(dic, open(model_file, 'w'))
+    return NB_NTF(features_file, model_file)   
   
 def munge_Boolean(email_file,features):
     tokens = set([token for token in re.split(' |\r\n', open(email_file).read())])
@@ -147,6 +165,5 @@ class NB_NTF(NaiveBayesModel):
 
 
 model = generate_Boolean_bayes(['train/ham', 'train/spam'], 'token_list.pkl', 'nb_spam_model.pkl') 
-print model.model
 model = NB_Boolean('token_list.pkl', 'nb_spam_model.pkl')
-model.test('train/ham', 'train/spam', 5)
+model.test('train/ham', 'train/spam', 1)
