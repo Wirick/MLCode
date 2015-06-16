@@ -35,7 +35,6 @@ def linear_svm_classify(training_set, validation_set, training_order=training_or
   scores, train_magnitude = [], range(len(training_labels))
   for order in training_order:
     inds = sample(train_magnitude, order)
-    print training_points[:10], training_labels[:10]
     svc.fit(training_points[inds], training_labels[inds].ravel())
     scores.append(svc.score(validation_points, validation_labels.ravel()))
     name = str(order) + "_" + save_file
@@ -45,6 +44,7 @@ def linear_svm_classify(training_set, validation_set, training_order=training_or
   return scores, training_order
 
 def bullet_plot(data, labels, title, xval, yval, save_location):
+  plt.clf()
   plt.plot(data, labels, 'ro')
   plt.title(title)
   plt.xlabel(xval)
@@ -52,6 +52,7 @@ def bullet_plot(data, labels, title, xval, yval, save_location):
   plt.savefig(save_location)
 
 def plot_confusion(matrix, title, xtick, ytick, save_file):
+  plt.clf()
   plt.matshow(matrix)
   plt.title(title)
   plt.colorbar()
@@ -117,7 +118,7 @@ def k_fold_cross_validation(k, learner, examples, errFn, sizes):
 		eT0, eV0 = cross_validation(k, size, learner, examples, errFn) 
 		eT.append(eT0)
 		eV.append(eV0)
-		print eT, eV, str(size) + '-nn'
+		print eT, eV, str(size) + '-size'
 	return eT, eV 
 		
 # Performs K fold cross validation with dimension SIZE with a given 
@@ -125,20 +126,17 @@ def k_fold_cross_validation(k, learner, examples, errFn, sizes):
 # for a given hypothesis calculated with the ERRFN.
 def cross_validation(k, size, learner, examples, errfn):
 	fold_errT, fold_errV = 0, 0
-	partitions = partition(examples, k, False)
+	partitions = partition(examples, k, True)
 	for i in range(k):
 		percent, kfold_errT, kfold_errV = 0, 0, 0
-		print str(size) + '-nn, fold ' + str(i)
+		print str(size) + '-size, fold ' + str(i+1)
 		train, val = partitions.next()
 		hypothesis = learner.get_hypothesis(size, train)
-		print 'training on set of ' + str(len(train[0])) + ' values'
 		comp = np.floor(float(len(train[0]))/10)
 		for i in range(len(train[0])):
 			if i % comp == 0:
 				percent += 10 
-				print percent, ' done.'
 			kfold_errT += errfn(train[0][i], hypothesis.predict(train[1][i]))
-		print 'validating on set of ' + str(len(val[0])) + ' values'
 		for x in range(len(val[0])):
 			kfold_errV += errfn(val[0][x], hypothesis.predict(val[1][x]))
 		train_err, val_err = float(kfold_errT)/len(train[0]), float(kfold_errV)/len(val[0])
@@ -152,7 +150,7 @@ def cross_validation(k, size, learner, examples, errfn):
 def partition(examples, k, rand):
 	inds = range(len(examples[0]))
 	if rand:
-		random.shuffle(inds)
+		shuffle(inds)
 	slices = [inds[i::k] for i in range(k)]
 	labels, data = examples
 	for i in range(k):
