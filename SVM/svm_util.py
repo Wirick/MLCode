@@ -1,4 +1,6 @@
 from random import shuffle, sample
+import re
+import os
 import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
@@ -163,3 +165,35 @@ def partition(examples, k, rand):
 		train_lab, train_dat = np.asarray([labels[x] for x in train]), [data[x] for x in train]
 		val_lab, val_dat = np.asarray([labels[x] for x in val]), [data[x] for x in val]
 		yield [(train_lab, train_dat), (val_lab, val_dat)]
+
+def munge_Boolean(email_file,features):
+    tokens = set([token for token in re.split(' |\r\n', open(email_file).read())])
+    bool_munge = [0 for x in features]
+    for token in tokens:
+      if token not in features:
+        continue
+      index = features.index(token)
+      if index > -1:
+        bool_munge[index] = 1
+    return tuple(bool_munge)
+
+def munge_NTF(email_file,features):
+    tokens = [token for token in re.split(' |\r\n', open(email_file).read())]
+    order, pos_features = len(tokens), defaultdict(lambda: 0)
+    features = pickle.load(open(features, 'rb'))
+    ntf_munge = [0 for x in features]
+    for token in tokens:
+      pos_features[token] += 1
+    for token, magnitude in pos_features.items():
+      index = features.index(token)
+      if index > -1:
+        ntf_munge[index] = magnitude/float(order)
+    return tuple(ntf_munge)
+
+## This code is from the UC Berkeley CS194 experimental machine learning
+## class skeleton files
+def get_files(path):
+    for f in os.listdir(path):
+        f = os.path.abspath( os.path.join(path, f ) )
+        if os.path.isfile( f ):
+            yield f
