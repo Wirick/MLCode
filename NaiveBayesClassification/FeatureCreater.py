@@ -48,3 +48,4 @@ class FeatureGenerator:
 
 generator = FeatureGenerator(['train/ham', 'train/spam'])
 generator.generate_popular_features()
+print 'hello'
