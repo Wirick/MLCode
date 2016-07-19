@@ -24,11 +24,11 @@ class UnivariateNormal(ProbabilityModel):
         self.sigma = sigma
 
     # Returns a sample from a single variable normal distribution
-	# using the Box Muller transformation
+    # using the Box Muller transformation
     def sample(self):
-		x, y = random.uniform(), random.uniform()
-		z = math.sqrt(-2*math.log(x))*math.cos(2*math.pi*y)
-		return self.sigma*z + self.mu
+        x, y = random.uniform(), random.uniform()
+        z = math.sqrt(-2*math.log(x))*math.cos(2*math.pi*y)
+        return self.sigma*z + self.mu
 
 # The sample space of this probability model is the set of D dimensional real
 # column vectors (modeled as numpy.array of size D x 1), and the probability
@@ -51,10 +51,10 @@ class MultiVariateNormal(ProbabilityModel):
     # a matrix A such that Mu + AZ ~ N(Mu, Sigma) for some unique N. We use the
     # Cholesky decomposition to compute this matrix
     def sample(self):
-		A = linalg.cholesky(self.Sigma)
-		Z = [[x.sample()] for x in self.D]
-		Mu = self.Mu
-		return Mu + A.dot(Z)
+        A = linalg.cholesky(self.Sigma)
+        Z = [[x.sample()] for x in self.D]
+        Mu = self.Mu
+        return Mu + A.dot(Z)
 
 # The sample space of this probability model is the finite discrete set {0..k-1}, and
 # the probability measure is defined by the atomic probabilities
@@ -64,22 +64,22 @@ class Categorical(ProbabilityModel):
     # probability model object with distribution parameterized by the atomic probabilities vector
     # ap (numpy.array of size k).
     def __init__(self,ap):
-		self.ap = ap
-		self.size = len(ap)
-		self.cutoffs = []
-		current_cut = 0
-		for i in range(self.size):
-			self.cutoffs = self.cutoffs + [ap[i] + current_cut]
-			current_cut += ap[i]
+        self.ap = ap
+        self.size = len(ap)
+        self.cutoffs = []
+        current_cut = 0
+        for i in range(self.size):
+            self.cutoffs = self.cutoffs + [ap[i] + current_cut]
+            current_cut += ap[i]
 
-	# So here the idea is just to draw a uniformly distributed number and
-	# use the cuttoffs to decide when to stop.
+    # So here the idea is just to draw a uniformly distributed number and
+    # use the cuttoffs to decide when to stop.
     def sample(self):
-		x = random.uniform()
-		for i in range(self.size):
-			if x > self.cutoffs[i]:
-				continue
-			return i
+        x = random.uniform()
+        for i in range(self.size):
+            if x > self.cutoffs[i]:
+                continue
+            return i
 
 # The sample space of this probability model is the union of the sample spaces of
 # the underlying probability models, and the probability measure is defined by
@@ -94,14 +94,14 @@ class MixtureModel(ProbabilityModel):
         self.ap = ap
         self.pm = pm
         self.model = Categorical(ap)
-	
-	# There is a bijection between the subspace of mixture models mod their atomic
-	# probability vectors and the space of categorical models given by the mapping
-	# [Mixture(ap)] |--> Categorical(ap). first we sample the categorical model, and
-	# use the result as the index of the probability model we will use for this sample.
+    
+    # There is a bijection between the subspace of mixture models mod their atomic
+    # probability vectors and the space of categorical models given by the mapping
+    # [Mixture(ap)] |--> Categorical(ap). first we sample the categorical model, and
+    # use the result as the index of the probability model we will use for this sample.
     def sample(self):
-		which = self.model.sample()
-		samp = self.pm[which].sample()
-		return samp
+        which = self.model.sample()
+        samp = self.pm[which].sample()
+        return samp
 
 
