@@ -10,6 +10,8 @@ from collections import defaultdict
 #########################################
 
 def generate_Boolean_bayes(input_dirs, features_file, model_file): 
+    """ Given INPUT_DIRS, a FEATURES_FILE, munges the content of the input_dirs
+        and then returns a Naive Bayes classifier. """
     labels = []
     nb_model, probs = defaultdict(lambda: 0), defaultdict(lambda: 0)
     features = pickle.load(open(features_file, 'rb'))
@@ -37,6 +39,8 @@ def generate_Boolean_bayes(input_dirs, features_file, model_file):
     return NB_Boolean(features_file, model_file)
 
 def generate_NTF_bayes(input_dirs, features_file, model_file):
+    """ Similar to the above function, except returns a Bayes Classifer using
+        Normalized term frequency on the data. """
     labels = []
     nb_model, probs = defaultdict(lambda: 0), defaultdict(lambda: 0)
     features = pickle.load(open(features_file, 'rb'))
@@ -65,6 +69,8 @@ def generate_NTF_bayes(input_dirs, features_file, model_file):
     return NB_NTF(features_file, model_file)   
   
 def munge_Boolean(email_file,features):
+    """ Returns a tuple of booleans, where x[i]=1 if the EMAIL_FILE
+        contains the word represented by features[i], and 0 otherwise. """
     tokens = set([token for token in re.split(' |\r\n', open(email_file).read())])
     bool_munge = [0 for x in features]
     for token in tokens:
@@ -75,7 +81,9 @@ def munge_Boolean(email_file,features):
         bool_munge[index] = 1
     return tuple(bool_munge)
 
-def munge_NTF(email_file,features):
+def munge_NTF(email_file, features):
+    """ Returns a tuple of floating point numbers where x[i]=c represents
+        the normalized term frequency of FEATURES[i] in the EMAIL_FILE. """
     tokens = [token for token in re.split(' |\r\n', open(email_file).read())]
     order, pos_features = len(tokens), defaultdict(lambda: 0)
     features = pickle.load(open(features, 'rb'))
@@ -89,7 +97,7 @@ def munge_NTF(email_file,features):
     return tuple(ntf_munge)
     
 
-def NBclassify_Boolean(example,model,cost_ratio):
+def NBclassify_Boolean(example, model, cost_ratio):
     max_label, max_score, cost_ratio = None, -float('inf'), math.log(cost_ratio)
     labels = ['spam', 'ham']
     for label in labels:
