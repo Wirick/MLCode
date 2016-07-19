@@ -6,18 +6,18 @@ import csv
 from numpy.random import uniform
 import math
 
-# Returns a v(ariable)r(anker) and a set of labels using a VAR_VECTOR of variables,
-# a PREDICTION_INDEX in the data with a set of DIST_CLASSES, since this is classification.
-# the DATA_FILE contains the comma seperated values, and the default trees are set to 500.
 def vr_generator(var_vector, prediction_index, dist_classes, data_file, trees=500, attr_fn=random_forest.rf_attr_fn, imp=random_forest.rf_gini_split):
+  """ Returns a v(ariable)r(anker) and a set of labels using a VAR_VECTOR of variables,
+      a PREDICTION_INDEX in the data with a set of DIST_CLASSES, since this is classification.
+      the DATA_FILE contains the comma seperated values, and the default trees are set to 500. """
   Data = [events for events in csv.reader(open(data_file))]
   labels = Data[0]
   rest = Data[2:]
   vr = VariableRanker(rest, var_vector, prediction_index, dist_classes, trees, attr_fn, imp)
   return vr, labels
 
-# Returns the range of a continuous or discrete VAR(int, {'c', 'd'}) in EXAMPLES
 def variable_range(examples, var):
+  """ Returns the range of a continuous or discrete VAR(int, {'c', 'd'}) in EXAMPLES. """
   if var[1] == 'd':
     range = set()
     for datum in examples:
@@ -30,13 +30,13 @@ def variable_range(examples, var):
       range_min, range_max = min(range_min, data_val), max(range_max, data_val)
     return (range_min, range_max)
 
-# A VariableRanker is a random forest together with a variable ranking function,
-# which is used to estimate the relative importance of a set of variables in a 
-# set of data with respect to a prediction index and some distinguished class
+""" A VariableRanker is a random forest together with a variable ranking function,
+    which is used to estimate the relative importance of a set of variables in a 
+    set of data with respect to a prediction index and some distinguished class. """
 class VariableRanker:
   forest = []
-  # Creates a ranker.
   def __init__(self, data, variables, prediction_index, dist_classes, trees, attr_fn, imp):
+    """ Creates a ranker. """
     self.attr_fn = attr_fn
     self.trees = trees
     self.data = data
@@ -44,8 +44,9 @@ class VariableRanker:
     self.prediction_index = prediction_index
     self.dist_classes = dist_classes
     self.importance_fn = imp
-  # This constructs a random forest from which predictions are drawn in the ranking function
+
   def grow_trees(self, regrow=False):
+    """ This constructs a random forest from which predictions are drawn in the ranking function. """
     if self.forest == [] or regrow:
       mtry = int(math.floor(math.sqrt(len(self.variables))))
       data, trees, var, pred_index = self.data, self.trees, self.variables, self.prediction_index
@@ -54,8 +55,9 @@ class VariableRanker:
       print self.trees, '  have been grown using a set of ', len(self.variables), ' variables.'
     else:
       print "Already a forest in place, add regrow=True to override."
-  # Ranks the variables in this variable ranker.
+
   def variable_ranking(self):
+  """ Ranks the variables in this variable ranker. """
     self.grow_trees()
     dist_classes = self.dist_classes
     oob = self.forest.oob_set_generator()
