@@ -8,17 +8,19 @@ from collections import defaultdict
 # We want some memoization here: This class is a 
 # simple memoization of a function.
 class memoized(object):
-	# Constructor of a memoization of a FUNCTION via 
-	# an ARGHASH which makes the keys nice
+
 	def __init__(self, function, arghash):
+	""" Constructor of a memoization of a FUNCTION via 
+	    an ARGHASH which makes the keys nice. """
 		self.function = function
 		self.arghash = arghash
 		self.reference = {}
-	# Calling the function first hashes the optional
-	# ARGS, and then if the computation is stored
-	# in self.reference, returns that value, otherwise
-	# stores and returns the function call with args.
+
 	def __call__(self, *args):
+	""" Calling the function first hashes the optional
+	    ARGS, and then if the computation is stored
+	    in self.reference, returns that value, otherwise
+	    stores and returns the function call with args. """
 		print args
 		hsh = self.arghash(args)
 		if hsh in self.reference:
@@ -29,10 +31,10 @@ class memoized(object):
 			self.reference[hsh] = value
 			return value
 
-# So we want a way of splitting data by certain attributes, so DATA is a list of 
-# data. Points in data are fed into the SHARD function with the IV to determine
-# if the point has the desired attributes 
 def get_component(data, shard, iv):
+    """ So we want a way of splitting data by certain attributes, so DATA is a list of 
+        data. Points in data are fed into the SHARD function with the IV to determine
+        if the point has the desired attributes. """
 	distinguished = []
 	for point in data:
 		belongs = shard(point, iv)
@@ -40,10 +42,10 @@ def get_component(data, shard, iv):
 			distinguished = distinguished + [point]
 	return distinguished
 
-# K nearest neighbors: Given an integer K, a query point X, a 
-# set of DATA(csv.reader), and a DISTANCE function which computes the distance 
-# from a point of data to x, returns the k nearest neighbors to x via the distance function.
 def k_nearest_neighbors(k, x, data, distance):
+    """ K nearest neighbors: Given an integer K, a query point X, a 
+        set of DATA(csv.reader), and a DISTANCE function which computes the distance 
+        from a point of data to x, returns the k nearest neighbors to x via the distance function. """
 	data = [events for events in data]
 	nneighbors = []
 	for event in data:
@@ -57,34 +59,34 @@ def k_nearest_neighbors(k, x, data, distance):
 	nneighbors = sorted(nneighbors, key=lambda event: -event[0])
 	return [event[1] for event in nneighbors]
 
-# K nearest neighbors lookup: Returns a dictionary whose keys are the
-# elements of DATA and whose values are the K nearest neighbors via the 
-# METRIC.
 def k_nearest_neighbors_lookup(k, data, metric):
-	nn = defaultdict(lambda: [])
+    """ K nearest neighbors lookup: Returns a dictionary whose keys are the
+        elements of DATA and whose values are the K nearest neighbors via the 
+        METRIC. """
+	nn = defaultdict(list)
 	for element in data:
 		neighbors = k_nearest_neighbors(k+1, element, data, metric)
 		nn[element] = str(neighbors[1:])
 	print nn
 	return nn
 
-# Function which returns lst[:size], it's a reduction function for lookup
-# computation
 def nn_reduce(size, lst):
+    """ Function which returns lst[:size], it's a reduction function for lookup
+        computation. """
 	return lst[:size]
 
-# K nearest neighbors list: So if you keep recomputing the k nearest neighbors
-# you are going to be waiting a long time for cross validation. This returns a 
-# sorted list of LENGTH nearest neighbors of a point X in examples with finite
-# distance.
 def nn_list(x, examples, distance, length):
+    """ K nearest neighbors list: So if you keep recomputing the k nearest neighbors
+        you are going to be waiting a long time for cross validation. This returns a 
+        sorted list of LENGTH nearest neighbors of a point X in examples with finite
+        distance. """
 	nn = k_nearest_neighbors(length, x, examples, distance)
 	return nn
 
-# K-fold cross-validation: Given an integer K, a LEARNER(EvalWrapper), and EXAMPLES, 
-# performs k-fold cross validation. ERRFN gives the difference between a prediction
-# and a data point
 def k_fold_cross_validation(k, learner, examples, errFn):
+    """ K-fold cross-validation: Given an integer K, a LEARNER(EvalWrapper), and EXAMPLES, 
+        performs k-fold cross validation. ERRFN gives the difference between a prediction
+        and a data point. """
 	eT, eV = [], []
 	for size in range(1, 31):
 		eT0, eV0 = cross_validation(k, size, learner, examples, errFn) 
@@ -93,10 +95,10 @@ def k_fold_cross_validation(k, learner, examples, errFn):
 		print eT, eV, str(size) + '-nn'
 	return eT, eV 
 		
-# Performs K fold cross validation with dimension SIZE with a given 
-# LEARNER on a set of EXAMPLES, returns the mean of the sample error
-# for a given hypothesis calculated with the ERRFN.
 def cross_validation(k, size, learner, examples, errfn):
+    """ Performs K fold cross validation with dimension SIZE with a given 
+        LEARNER on a set of EXAMPLES, returns the mean of the sample error
+        for a given hypothesis calculated with the ERRFN. """
 	fold_errT, fold_errV = 0, 0
 	partitions = partition(examples, k, False)
 	for i in range(k):
@@ -118,10 +120,10 @@ def cross_validation(k, size, learner, examples, errfn):
 		print 'Errors: Validation = ' + str(val_err) + ' Training = ' + str(train_err)
 	return fold_errT/k, fold_errV/k
 
-# Returns a generator which produces the K-fold partitions of the LST of 
-# training examples. Randomizes examples before partitioning when RAND is
-# True, and leaves in order otherwise.
 def partition(lst, k, rand):
+    """ Returns a generator which produces the K-fold partitions of the LST of 
+        training examples. Randomizes examples before partitioning when RAND is
+        True, and leaves in order otherwise. """
 	if rand:
 		random.shuffle(lst)
 	slices = [lst[i::k] for i in range(k)]
@@ -134,9 +136,9 @@ def partition(lst, k, rand):
 			train = train + slices[j]
 		yield train, val
 
-# Just a method for storing evaluation data so that things don't need to 
-# be recomputed
 def record_eval(train, val, filename):
+    """ Just a method for storing evaluation data so that things don't need to 
+        be recomputed. """
 	f = open(filename, 'w')
 	f.write('trainerr\n')
 	for x in train:
@@ -146,42 +148,42 @@ def record_eval(train, val, filename):
 		f.write(str(x) + '\n')
 	f.close()
 
-# Plane local regression function which takes a real X and predicts f(x) using
-# the K nearest neighbors on EXAMPLES and the 1-norm as the distance function
 def plane_local_regression(x, k, examples):
+    """ Plane local regression function which takes a real X and predicts f(x) using
+        the K nearest neighbors on EXAMPLES and the 1-norm as the distance function. """
 	nn = k_nearest_neighbors(k, x, examples, plane_regression_norm)
 	nn = [item[1] for item in nn]
 	return numpy.mean(nn), numpy.var(nn)
 
-# Returns a function which serves as a hypothesis for a plane local linear regression
-# model. Initial is presumed empty in this case.
 def plane_regression_setup(initial, size, examples):
+    """ Returns a function which serves as a hypothesis for a plane local linear regression
+        model. Initial is presumed empty in this case."""
 	return lambda x : plane_local_regression(x[0], size, examples)
 
-# Given a data point X in R^2 and the result of a plane local regression 
-# prediction FX, computes the 1 norm of FX and X[1], which is the actual value.
 def plane_err(x, fx):
+    """ Given a data point X in R^2 and the result of a plane local regression 
+        prediction FX, computes the 1 norm of FX and X[1], which is the actual value. """
 	return one_norm(x[1], fx[0])
 
-# The 1 norm of x and y elements of the real numbers. 
 def one_norm(x, y):
+    """ The 1 norm of x and y elements of the real numbers. """
 	return abs(x - y)
 
-# The 2-d euclidean norm of X0 and X1.
 def two_norm(x0, x1):
+    """ The 2-d euclidean norm of X0 and X1."""
 	return numpy.sqrt(pow(x0[0] - x1[0], 2) + pow(x0[1] - x1[1], 2))
 
-# This norm measures the distance between a real X0 and X1 
-# in R^2 by taking the 1-norm of x0 and x1[0]
 def plane_regression_norm(x0, x1):
+    """ This norm measures the distance between a real X0 and X1 
+        in R^2 by taking the 1-norm of x0 and x1[0]."""
 	return one_norm(x0, x1[0])
 
-# Returns a list of (value, abs_frequency, relative_freq) tuples using
-# attributes drawn from ATTR(list) combined using
-# some COMBINE function and drawing from DATA(csv). The function takes
-# a data point and returns the value of the attribute applicable to that
-# datum. The default combine function is assuming one attribute is being examined.
 def discrete_histogram(data, attr, combine=lambda x: x[0]):
+    """ Returns a list of (value, abs_frequency, relative_freq) tuples using
+        attributes drawn from ATTR(list) combined using some COMBINE function
+        and drawing from DATA(csv). The function takes a data point and returns
+        the value of the attribute applicable to that datum. The default combine
+        function is assuming one attribute is being examined. """
 	data = [events for events in csv.reader(open(data))]
 	attributes, data = data[0], data[1:]
 	order = len(data)
@@ -197,10 +199,10 @@ def discrete_histogram(data, attr, combine=lambda x: x[0]):
 		tuples = tuples + [(key, histogram[key], histogram[key]/float(order))]
 	return tuples
 
-# Returns a dictionary whose keys are the attributes in csv on the first
-# line of DATA, the values are default dictionary whose keys are attribute values
-# and whose values are the absolute frequency of the value in the dataset
 def complete_histogram(data):
+    """ Returns a dictionary whose keys are the attributes in csv on the first
+        line of DATA, the values are default dictionary whose keys are attribute values
+        and whose values are the absolute frequency of the value in the dataset. """
 	data = [events for events in csv.reader(open(data))]
 	histogram = defaultdict(lambda: defaultdict(lambda: 0))
 	keys = data[0]
@@ -210,10 +212,10 @@ def complete_histogram(data):
 			histogram[keys[i]][point[i]] += 1
 	print histogram
 	
-# Returns the confusion matrix of ATTR1 and ATTR2 and drawing from DATA, 
-# also returns respectively the list of row and column values that index
-# the matrix.
 def confusion_matrix(data, attr1, attr2):
+    """ Returns the confusion matrix of ATTR1 and ATTR2 and drawing from DATA, 
+        also returns respectively the list of row and column values that index
+        the matrix. """
 	row_vals = discrete_histogram(data, [attr1])
 	row_keys = key_function(row_vals)
 	col_keys = key_function(discrete_histogram(data, [attr2]))
@@ -230,9 +232,9 @@ def confusion_matrix(data, attr1, attr2):
 		matr.append(rows[key])
 	return np.matrix(matr), row_keys, col_keys
 
-# Given a HISTOGRAM, returns a list of the values x[0] of the points x in 
-# the histogram.
 def key_function(histogram):
+    """ Given a HISTOGRAM, returns a list of the values x[0] of the points x in 
+        the histogram."""
 	keys = []
 	for point in histogram:
 		keys = keys + [point[0]]
